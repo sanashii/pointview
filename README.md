@@ -1,12 +1,12 @@
 # Point View
 <p>The hospitality sector recognizes the growing significance of customer feedback in the digital era, but the challenge lies in efficiently managing the overwhelming volume of user-generated content across various online review platforms. This project emphasizes the need for a unified scoring system, "PointView," leveraging Machine Learning (ML) and Natural Language Processing (NLP) to transform how hotel and restaurant managers interpret and utilize consumer input. The goal is to enhance decision-making, improve services, and ultimately elevate the overall customer experience, addressing the current fragmented state of data assessment in the industry.</p>
 
-## Contributors:
+## Contributors
 - Gerard D. Ompad (Thesis Advisor & Initial Code Provider)
 - Andrea Baulita
 - Tjay Abunales
 
-### Getting started
+## Getting started
 1. Fork the original repo [https://github.com/sanashii/pointview]
 2. Clone the forked repository to your local machine
 ```git
@@ -30,7 +30,7 @@ git fetch upstream
 ```
 7. Feel free to make changes and add features into your forked repository and once it's ready for merging, make a PR and wait for merge approval.
 
-### Prerequisites 
+## Prerequisites 
 - Python Version 3.12 or higher
 - Install he following python libraries:
 <ul>
