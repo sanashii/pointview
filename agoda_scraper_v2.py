@@ -166,6 +166,7 @@ def scrape_reviews():
 
 
 # Step 1: Open Agoda
+time.sleep(10)
 url = 'https://www.agoda.com'
 driver.get(url)
 response = requests.get(url)
