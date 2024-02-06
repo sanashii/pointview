@@ -27,7 +27,7 @@ logging.getLogger('urllib3').setLevel(logging.ERROR)
 chrome_options = Options()
 prefs = {"profile.managed_default_content_settings.images": 2}
 chrome_options.add_experimental_option("prefs", prefs)
-# chrome_options.add_argument("--incognito")
+chrome_options.add_argument("--incognito")
 chrome_options.add_argument("--window-size=1920,1080")
 chrome_options.add_argument("--disable-gpu")
 chrome_options.add_argument("--disable-extensions")
@@ -165,26 +165,30 @@ def scrape_reviews():
             print(e)
             break
 
-    # calling the function to save data to csv
+     # calling the function to save data to csv
     to_csv(score_list, sentiments, identities, travel_type, room_type, stayed, comments, review_date, review_pages)
+
+    # Close the current tab
+    driver.close()
+
+    # Switch back to the original tab
+    driver.switch_to.window(original_tab)
 
 
 # Step 1: Open Agoda
-url = 'https://www.agoda.com'
+url = 'https://www.booking.com/'
 driver.get(url)
 response = requests.get(url)
-# html_text = requests.get('https://www.agoda.com').text
-# soup = BeautifulSoup(html_text, 'lxml')
 print(driver.title)
 
 if response.status_code == 200:
-    print("Opened Agoda...")
+    print("Opened Booking.com...")
 else:
-    print("Failed to open Agoda. Exiting.")
+    print("Failed to open Booking.com. Exiting.")
     exit()
 
 # ! NOTE: we have to wait for about 5 seconds bc there's a pop-up that appears
-xpath_to_wait_for = './/div/button[@class="ab-close-button"]'
+xpath_to_wait_for = './/div/button[@class="a83ed08757 c21c56c305 f38b6daa18 d691166b09 ab98298258 deab83296e f4552b6561"]' # path for pop up close button
 try:
     element = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, xpath_to_wait_for))
@@ -200,12 +204,12 @@ except TimeoutException:
 #Step 2: Locate city
 while True:
 	try:
-		driver.find_element(By.XPATH, './/input[@class="SearchBoxTextEditor SearchBoxTextEditor--autocomplete"]').clear()
+		driver.find_element(By.XPATH, './/div/div/div/input[@class="eb46370fe1"]').clear()
 		search = input('Input city location:')
 		search = str(search)
-		driver.find_element(By.XPATH, './/input[@class="SearchBoxTextEditor SearchBoxTextEditor--autocomplete"]').send_keys(search)
-		WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'.//li[@class="Suggestion__subtext Suggestion__subtext__update"][contains(., "City")]')))
-		driver.find_element(By.XPATH, './/span[@class="Suggestion__categoryName_subtext"][contains(., "City")]').click()
+		driver.find_element(By.XPATH, './/div/div/div/input[@class="eb46370fe1"]').send_keys(search) # placing the input in the search
+		WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'.//ul/li[@class="be14df8bfb d10ff0bc69"]')))
+		driver.find_element(By.XPATH,'.//ul/li[@class="be14df8bfb d10ff0bc69"]').click()
 	except (NoSuchElementException,TimeoutException):
 		print('Your selection is not a city, please check your spelling.')
 		continue
@@ -214,9 +218,13 @@ while True:
 
 #Step 3: Search and click review box
 time.sleep(2)
-WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, './/div[@class="Box-sc-kv6pi1-0 sc-hlTvYk gGiMIZ eMcHMY IconBox IconBox--checkIn IconBox--focused IconBox--focussable"]'))).click()
-driver.find_element(By.XPATH, './/div[@class="Box-sc-kv6pi1-0 sc-hlTvYk gGiMIZ eMcHMY IconBox IconBox--checkIn IconBox--focused IconBox--focussable"]').click()
-driver.find_element(By.XPATH, './/div/button[@class="Buttonstyled__ButtonStyled-sc-5gjk6l-0 iCZpGI Box-sc-kv6pi1-0 fDMIuA"]').click()
+# button = driver.find_element(By.XPATH, './/div/button[@class="a83ed08757 c21c56c305 a4c1805887 f671049264 d2529514af c082d89982 cceeb8986b"]')
+# driver.execute_script("arguments[0].scrollIntoView(true);", button) # scrolling to bypass calendar overlay
+# button.click()
+
+# calendar scheme to avoid calendar overlay when displaying hotel list
+
+
 sleep(randint(1,5)) # random sleeping time between 1 to 6 seconds to mimic human behavior
 print('Clicked on the review box...')
 
@@ -228,25 +236,26 @@ if len(driver.window_handles) > 1:
 original_tab = driver.current_window_handle
 
 # Step 5: looping through pages of lists of hotels
-WebDriverWait(driver, 1000).until(EC.presence_of_element_located((By.XPATH, './/ol[@class="hotel-list-container"]')))
+WebDriverWait(driver, 1000).until(EC.presence_of_element_located((By.XPATH, './/div[@class="d4924c9e74"]')))
 print('Hotel list is present...')
 
 '''
-max_pages = driver.find_element(By.XPATH, './/div[@id="paginationPageCount"]').text  # Set the maximum number of pages you want to scrape
+max_pages = driver.find_element(By.XPATH, './/ol/li/button[@class="a83ed08757 a2028338ea"]').text  # Set the maximum number of pages you want to scrape
+# # Use regular expression to extract the number
+# match = re.search(r'Page \d+ out of (\d+)', max_pages)
 
-# Use regular expression to extract the number
-match = re.search(r'Page \d+ out of (\d+)', max_pages)
-
-# Check if the pattern was found
-if match:
-    total_pages = int(match.group(1))
+# # Check if the pattern was found
+# if match:
+#     total_pages = int(match.group(1))
 '''
 max_pages = 1  #! FOR TESTING ONLY - Set the maximum number of pages you want to scrape
 
 for page in range(1, max_pages + 1):
-    ordered_list_class = 'hotel-list-container'
-    hotel_links = driver.find_elements(By.XPATH, f'.//ol[@class="{ordered_list_class}"]/li/div/a')
+    hotel_list_class = 'bcbf33c5c3' # its not an ol but an array of divs
+    hotel_links = driver.find_elements(By.XPATH, f'.//div[@class="{hotel_list_class}"]//a')
 
+    print(f"Found {len(hotel_links)} hotel links on page {page}.")
+    
     for hotel_link in hotel_links:
         ActionChains(driver).key_down(Keys.CONTROL).click(hotel_link).key_up(Keys.CONTROL).perform()
         time.sleep(2)  # Add a delay to ensure the new tab has opened
@@ -259,68 +268,31 @@ for page in range(1, max_pages + 1):
             try:
                 WebDriverWait(driver, 100).until(EC.new_window_is_opened(all_tabs))
                 print("Switched to the new tab successfully.")
+                hotel_name = driver.find_element(By.XPATH, './/div/h2[@class="d2fee87262 pp-header__title"]').text
             except TimeoutException:
                 print("Timed out waiting for the new tab to open.")
 
             # Optionally adjust the wait time based on the actual loading times
             try:
-                WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, './/div[@class="ReviewScoreCompact__section"]')))
+                WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, './/li/a[@class="a83ed08757 f3441ccb97 ec66406250"]'))) # waiting for the review tab to be present
                 print("New tab is fully loaded.")
             except TimeoutException:
                 print("Timed out waiting for the new tab to be fully loaded.")
-
-            hotel_name = driver.find_element(By.XPATH, './/div/p[@class="HeaderCerebrum__Name"]').text
+            
+            driver.find_element(By.XPATH, './/li/a[@class="a83ed08757 f3441ccb97 ec66406250"]').click() # clicking on the review tab
+            WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, './/div[@class="sliding-panel-widget-content review_list_block one_col"]')))
             print(f"Scraping reviews from {hotel_name}...")
-            scrape_reviews()
+#             scrape_reviews()
 
-            driver.close()  # Close the new tab
-        else:
-            print("No new tab found. Unable to switch.")
+#             driver.close()  # Close the new tab
+            
+#             driver.switch_to.window(original_tab)
+#         else:
+#             print("No new tab found. Unable to switch.")
 
-    # Step 10: Navigate to the next page
-    next_page_button_id = 'paginationNext'
-    next_page_button = driver.find_element(By.XPATH, f'.//ol[@class="{next_page_button_id}"]').click()
-    time.sleep(2)  # Add a delay to ensure the new page has loaded
+#     # Step 10: Navigate to the next page
+#     next_page_button_id = 'paginationNext'
+#     next_page_button = driver.find_element(By.XPATH, f'.//ol[@class="{next_page_button_id}"]').click()
+#     time.sleep(2)  # Add a delay to ensure the new page has loaded
 
-print('Scraping completed!')
-
-'''
-# Wait for the review tab to be present
-WebDriverWait(driver, 1000).until(EC.presence_of_element_located((By.XPATH, './/span[@class="Review-tab Review-tab--active"]')))
-element = driver.find_element_by_xpath('.//span[@class="Review-tab Review-tab--active"]')
-driver.execute_script("arguments[0].scrollIntoView();", element)
-i = element.text
-print('Scraping.....')
-
-
-# Step 6: Collect the review collection
-reviews = []
-
-while True:
-    try:
-        # Replace this part with the appropriate URL for reviews
-        review_url = 'https://www.agoda.com/review-url'  # Update this with the actual review URL
-        review_response = requests.get(review_url)
-        review_soup = BeautifulSoup(review_response.content, 'html.parser')
-
-        # Adjust the following code to match the structure of Agoda reviews page
-        comment_review = review_soup.find_all('div', class_='Review-comment-body')
-        for comment in comment_review:
-            comment_text = comment.get_text(strip=True)
-            print(comment_text)
-            reviews.append(comment_text)
-    except Exception as e:
-        print(f'An error occurred: {e}')
-        break
-
-# Step 7: Collect the reviews (either Agoda or Booking.com)
-print('Scraping Agoda reviews.....')
-reviews_url = 'https://www.agoda.com/reviews-url'  # Update this with the actual reviews URL
-reviews_response = requests.get(reviews_url)
-reviews_soup = BeautifulSoup(reviews_response.content, 'html.parser')
-
-# Continue parsing and collecting reviews as needed...
-
-# End of Agoda scraper
-print('Agoda scraping completed.')
-'''
+# print('Scraping completed!')
