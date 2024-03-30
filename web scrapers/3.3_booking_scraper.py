@@ -19,6 +19,7 @@ from bs4 import BeautifulSoup
 
 import logging
 from selenium.common.exceptions import StaleElementReferenceException
+import os
 
 # Suppressing "ERROR:device_event_log_impl.cc" messages
 logging.getLogger('urllib3').setLevel(logging.ERROR)
@@ -43,7 +44,7 @@ chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
 driver = webdriver.Chrome(options=chrome_options)
-REVIEW_LEFT_SCORE_XPATH = './/div[@class="Review-comment-leftScore"]'
+REVIEW_RIGHT_SCORE_XPATH = './/div/div[@class="a3b8729ab1 d86cee9b25"]'
 
 # function to switch to original tab (for multiple pages in 1 tab)
 def switch_to_original_tab():
@@ -54,14 +55,14 @@ def switch_to_original_tab():
 def handle_page_selection():
     try:
         # Find the current page number
-        current_page = driver.find_element(By.XPATH, './/span[@class="Typographystyled__TypographyStyled-sc-j18mtu-0 croywR kite-js-Typography Review-paginator-number Review-paginator-number--current"]').text
+        current_page = driver.find_element(By.XPATH, './/ol/li[@class="f6431b446c c5811cad6b').text
         current_page = int(current_page)
 
         # Click the right button to move to the next page
-        right_button = driver.find_element(By.XPATH, './/i[@class="ficon ficon-24 ficon-carrouselarrow-right"]').click()
+        right_button = driver.find_element(By.XPATH, './/div/button[@class="a83ed08757 c21c56c305 f38b6daa18 d691166b09 ab98298258 deab83296e bb803d8689 a16ddf9c57"]').click()
 
         # Wait for the next set of reviews to load
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, REVIEW_LEFT_SCORE_XPATH)))
+        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, REVIEW_RIGHT_SCORE_XPATH)))
         time.sleep(2)  # Add additional wait if necessary
 
         print(f"Moved from page {current_page} to the next page.")
@@ -71,25 +72,33 @@ def handle_page_selection():
 
 # Function to save data to CSV
 def to_csv(score_list, sentiments, identities, travel_type, room_type, stayed, comments, review_date, review_pages):
+    # Create directory if it doesn't exist
+    directory = 'datasets/booking'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     # Creating DataFrames and saving to CSV
     for i in range(1, review_pages + 1):
-        sentiments = pd.DataFrame(sentiments, columns=['sentiments'])
-        identities = pd.DataFrame(identities, columns=['location'])
-        travel_type = pd.DataFrame(travel_type, columns=['travel_type'])
-        room_type = pd.DataFrame(room_type, columns=['room_type'])
-        stayed = pd.DataFrame(stayed, columns=['stayed'])
-        score = pd.DataFrame(score_list, columns=['score'])
-        comments = pd.DataFrame(comments, columns=['comments'])
-        review_date = pd.DataFrame(review_date, columns=['review_date'])
-        comments['location'] = identities['location']
-        comments['sentiments'] = sentiments['sentiments']
-        comments['travel_type'] = travel_type['travel_type']
-        comments['room_type'] = room_type['room_type']
-        comments['stayed'] = stayed['stayed']
-        comments['score'] = score['score']
-        comments['review_date'] = review_date['review_date']
-        comments.to_csv(search + " " + i + '.csv', index=False)
+        sentiments_df = pd.DataFrame(sentiments, columns=['sentiments'])
+        identities_df = pd.DataFrame(identities, columns=['location'])
+        travel_type_df = pd.DataFrame(travel_type, columns=['travel_type'])
+        room_type_df = pd.DataFrame(room_type, columns=['room_type'])
+        stayed_df = pd.DataFrame(stayed, columns=['stayed'])
+        score_df = pd.DataFrame(score_list, columns=['score'])
+        comments_df = pd.DataFrame(comments, columns=['comments'])
+        review_date_df = pd.DataFrame(review_date, columns=['review_date'])
+
+        # Combine DataFrames
+        combined_df = pd.concat([comments_df, identities_df, sentiments_df, travel_type_df,
+                                 room_type_df, stayed_df, score_df, review_date_df], axis=1)
+
+        # Save to CSV
+        filename = f"{search} {i}.csv"
+        filepath = os.path.join(directory, filename)
+        combined_df.to_csv(filepath, index=False)
+
     print('Comments Saved...')
+
 
 # Function to scrape Booking reviews
 def scrape_reviews():
@@ -106,11 +115,11 @@ def scrape_reviews():
 
     # Infinite loop to iterate through reviews
     # while True:
-    while review_pages <= 5:  #! FOR TESTING ONLY - maximum number of review pages you want to scrape
+    while review_pages <= 6:  #! FOR TESTING ONLY - maximum number of review pages you want to scrape
         time.sleep(2)
 
         # Wait for the left score elements to be present
-        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, './/div[@class="{REVIEW_LEFT_SCORE_XPATH}"]')))
+        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, './/div[@class="{REVIEW_RIGHT_SCORE_XPATH}"]')))
 
         print(f"Scraping reviews from page {review_pages}...")
         # Get the HTML content after the page has loaded
@@ -120,24 +129,22 @@ def scrape_reviews():
         soup = BeautifulSoup(page_source, 'html.parser')
 
         # Extract data using BeautifulSoup
-        for number in soup.select('.{REVIEW_LEFT_SCORE_XPATH}'):
+        for number in soup.select('.{REVIEW_RIGHT_SCORE_XPATH}'):
             score_list.append(number.get_text(strip=True))
 
-        for sent in soup.select('.Review-comment-leftScoreText'):
+        for sent in soup.select('.f6431b446c c5811cad6b'):
             sentiments.append(sent.get_text(strip=True))
 
-        for date in soup.select('.Review-statusBar-date'):
+        for date in soup.select('.abf093bdfe d88f1120c1'):
             review_date.append(date.get_text(strip=True))
 
-        for loc in soup.select('[Review-comment-reviewer data-info-type="reviewer-name"]'):
-            loc = loc.get_text(strip=True).split("from")[1:]
-            loc = ",".join(loc).strip(" ")
+        for loc in soup.select('afac1f68d9 a1ad95c055'):
             identities.append(loc)
 
-        for travel in soup.select('[Review-comment-reviewer data-info-type="group-name"]'):
+        for travel in soup.select('.abf093bdfe'):
             travel_type.append(travel.get_text(strip=True))
 
-        for room in soup.select('[Review-comment-reviewer data-info-type="room-type"]'):
+        for room in soup.select('.abf093bdfe e4b09a7957'):
             room_text = room.get_text(strip=True)
             if room_text:
                 room_type.append(room_text)
@@ -145,10 +152,10 @@ def scrape_reviews():
                 room_type.append("N/A") # placeholder if no room was specified
 
 
-        for stay in soup.select('[data-info-type="stay-detail"]'):
+        for stay in soup.select('.abf093bdfe'):
             stayed.append(stay.get_text(strip=True))
 
-        for comment in soup.select('.Review-comment-body'):
+        for comment in soup.select('.a53cbfa6de b5726afd0b'):
             comment = comment.get_text(strip=True).replace('\n', ',').replace('”,', ',')
             comments.append(comment)
             print(comment)
@@ -295,8 +302,13 @@ for page in range(1, max_pages + 1):
 
     for hotel_link in hotel_links:
         time.sleep(5)
-        # Simulate opening link in a new tab
-        hotel_link.send_keys(Keys.CONTROL + Keys.RETURN)
+        # Simulate opening link in a new tab using JavaScript
+        driver.execute_script("window.open(arguments[0],'_blank');", hotel_link.get_attribute("href"))
+
+        # Switch to the newly opened tab
+        all_tabs = driver.window_handles
+        new_tab = all_tabs[-1]
+        driver.switch_to.window(new_tab)
 
         time.sleep(2)  # Add a delay to ensure the new tab has opened
 
@@ -314,20 +326,9 @@ for page in range(1, max_pages + 1):
         print('Clicked on the review tab...')
         WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, './/div/div[@class="sliding-panel-widget-content review_list_block one_col"]')))
         print(f"Scraping reviews from {hotel_name}...")
-        # scrape_reviews()
-
-#             driver.close()  # Close the new tab
-            
-#             driver.switch_to.window(original_tab)
-#         else:
-#             print("No new tab found. Unable to switch.")
-
-#     # Step 10: Navigate to the next page
-#     next_page_button_id = 'paginationNext'
-#     next_page_button = driver.find_element(By.XPATH, f'.//ol[@class="{next_page_button_id}"]').click()
-#     time.sleep(2)  # Add a delay to ensure the new page has loaded
-
+        scrape_reviews()
 
 # # After processing all hotel links, switch back to the original tab
 # driver.switch_to.window(original_tab)
+# driver.close()
 # print('Scraping completed!')
