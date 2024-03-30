@@ -91,7 +91,7 @@ def to_csv(score_list, sentiments, identities, travel_type, room_type, stayed, c
         comments.to_csv(search + " " + i + '.csv', index=False)
     print('Comments Saved...')
 
-# Function to scrape Agoda reviews
+# Function to scrape Booking reviews
 def scrape_reviews():
     # Lists to store scraped data
     score_list = []
@@ -206,7 +206,7 @@ except TimeoutException:
 # Step 2: Locate city
 while True:
     try:    
-        search = input('Input city location:')
+        search = input('Input city location: ')
         search = str(search)
         print(search)
         
@@ -294,8 +294,10 @@ for page in range(1, max_pages + 1):
     print(f"Found {len(hotel_links)} hotel links on page {page}.")
 
     for hotel_link in hotel_links:
-        # Open the hotel link in a new tab
-        ActionChains(driver).key_down(Keys.CONTROL).click(hotel_link).key_up(Keys.CONTROL).perform()
+        time.sleep(5)
+        # Simulate opening link in a new tab
+        hotel_link.send_keys(Keys.CONTROL + Keys.RETURN)
+
         time.sleep(2)  # Add a delay to ensure the new tab has opened
 
         # Switch to the newly opened tab
@@ -303,22 +305,15 @@ for page in range(1, max_pages + 1):
         new_tab = all_tabs[-1]
         driver.switch_to.window(new_tab)
 
-        # Re-find the hotel name element in the new tab to avoid stale element reference
-        try:
-            hotel_name_element = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, './/div/h2[@class="d2fee87262 pp-header__title"]')))
-            hotel_name = hotel_name_element.text
-            print(f"Switched to the new tab with URL: {driver.current_url}, Hotel name: {hotel_name}")
+        hotel_name_element = driver.find_element(By.XPATH, './/div/h2[@class="d2fee87262 pp-header__title"]')
+        hotel_name = hotel_name_element.text
+        print(f"Switched to the new tab with URL: {driver.current_url}, Hotel name: {hotel_name}")
 
-            # Clicking the review tab
-            driver.find_element(By.XPATH, './/div/ul/li/a/span/div/span[contains(text(), "Guest reviews")]').click()
-            print('Clicked on the review tab...')
-            WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, './/div/div[@class="sliding-panel-widget-content review_list_block one_col"]')))
-            print(f"Scraping reviews from {hotel_name}...")
-            
-        except StaleElementReferenceException:
-            print("Stale element reference encountered. Retrying...")
-            continue  # Continue to the next iteration of the loop
-
+        # Clicking the review tab
+        driver.find_element(By.XPATH, './/div/ul/li/a/span/div/span[contains(text(), "Guest reviews")]').click()
+        print('Clicked on the review tab...')
+        WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, './/div/div[@class="sliding-panel-widget-content review_list_block one_col"]')))
+        print(f"Scraping reviews from {hotel_name}...")
         # scrape_reviews()
 
 #             driver.close()  # Close the new tab
