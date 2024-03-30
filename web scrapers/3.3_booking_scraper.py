@@ -18,6 +18,7 @@ import re
 from bs4 import BeautifulSoup
 
 import logging
+from selenium.common.exceptions import StaleElementReferenceException
 
 # Suppressing "ERROR:device_event_log_impl.cc" messages
 logging.getLogger('urllib3').setLevel(logging.ERROR)
@@ -173,9 +174,8 @@ def scrape_reviews():
 
     # Switch back to the original tab
     driver.switch_to.window(original_tab)
-
-
-# Step 1: Open Agoda
+    
+# Step 1: Open Booking.com
 url = 'https://www.booking.com/'
 driver.get(url)
 response = requests.get(url)
@@ -188,6 +188,7 @@ else:
     exit()
 
 # ! NOTE: we have to wait for about 5 seconds bc there's a pop-up that appears
+pop_up = 0
 xpath_to_wait_for = './/div/button[@class="a83ed08757 c21c56c305 f38b6daa18 d691166b09 ab98298258 deab83296e f4552b6561"]' # path for pop up close button
 try:
     element = WebDriverWait(driver, 10).until(
@@ -196,37 +197,58 @@ try:
     
     ActionChains(driver).move_to_element(element).perform()
     element.click()
+    pop_up = 1
     print("Closed the pop-up.")
 
 except TimeoutException:
     print(f"Timed out waiting for element with XPath '{xpath_to_wait_for}' to appear.")
 
-#Step 2: Locate city
+# Step 2: Locate city
 while True:
-	try:
-		driver.find_element(By.XPATH, './/div/div/div/input[@class="eb46370fe1"]').clear()
-		search = input('Input city location:')
-		search = str(search)
-		driver.find_element(By.XPATH, './/div/div/div/input[@class="eb46370fe1"]').send_keys(search) # placing the input in the search
-		WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'.//ul/li[@class="be14df8bfb d10ff0bc69"]')))
-		driver.find_element(By.XPATH,'.//ul/li[@class="be14df8bfb d10ff0bc69"]').click()
-	except (NoSuchElementException,TimeoutException):
-		print('Your selection is not a city, please check your spelling.')
-		continue
-	else:
-		break
+    try:    
+        search = input('Input city location:')
+        search = str(search)
+        print(search)
+        
+        # Enter the new search query
+        driver.find_element(By.XPATH, './/div/div/div/input[@class="eb46370fe1"]').send_keys(search)
+        
+        # Wait for the dropdown menu to appear
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, './/ul/li[@class="be14df8bfb"]')))
+        
+        # Click on the first suggestion in the dropdown menu
+        driver.find_element(By.XPATH,'.//ul/li/div[@class="d7430561e2"]').click()
+        
+    except (NoSuchElementException, TimeoutException):
+        print('Your selection is not a city, please check your spelling.')
+        continue
+    else:
+        break
+
 
 #Step 3: Search and click review box
 time.sleep(2)
-# button = driver.find_element(By.XPATH, './/div/button[@class="a83ed08757 c21c56c305 a4c1805887 f671049264 d2529514af c082d89982 cceeb8986b"]')
-# driver.execute_script("arguments[0].scrollIntoView(true);", button) # scrolling to bypass calendar overlay
-# button.click()
+button = driver.find_element(By.XPATH, './/div/button[@class="a83ed08757 c21c56c305 a4c1805887 f671049264 d2529514af c082d89982 cceeb8986b"]')
+driver.execute_script("arguments[0].scrollIntoView(true);", button) # scrolling to bypass calendar overlay
+button.click()
 
-# calendar scheme to avoid calendar overlay when displaying hotel list
+# # Wait for the calendar overlay to appear
+# try:
+#     calendar_overlay = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, './/div/nav[@class="d48f1af7a3 e74a369bda d3ce2af2cd"]')))
+#     # Calculate the check-out date (current date + 1 day for overnight stay)
+#     check_out_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%d")
+#     check_in_date = int(check_out_date) - 1  # Convert to integer
+
+#     # Click on the check-out date in the calendar overlay
+#     driver.find_element(By.XPATH, f'.//div/nav[@class="d48f1af7a3 e74a369bda d3ce2af2cd"]//td[text()="{check_in_date}"]').click()
+#     driver.find_element(By.XPATH, f'.//div/nav[@class="d48f1af7a3 e74a369bda d3ce2af2cd"]//td[text()="{check_out_date}"]').click()
+
+#     button.click()
+# except TimeoutException:
+#     print("Calendar overlay did not appear within the specified time.")
 
 
 sleep(randint(1,5)) # random sleeping time between 1 to 6 seconds to mimic human behavior
-print('Clicked on the review box...')
 
 # Step 4: Transfer to new pop-up window (if needed)
 if len(driver.window_handles) > 1:
@@ -239,6 +261,21 @@ original_tab = driver.current_window_handle
 WebDriverWait(driver, 1000).until(EC.presence_of_element_located((By.XPATH, './/div[@class="d4924c9e74"]')))
 print('Hotel list is present...')
 
+# another pop up check if ever it wont show up during startup
+try:
+    if(pop_up == 0):
+        element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, xpath_to_wait_for))
+        )
+        
+        ActionChains(driver).move_to_element(element).perform()
+        element.click()
+        pop_up = 1
+        print("Closed the pop-up.")
+
+except TimeoutException:
+    print(f"Timed out waiting for element with XPath '{xpath_to_wait_for}' to appear.")
+    
 '''
 max_pages = driver.find_element(By.XPATH, './/ol/li/button[@class="a83ed08757 a2028338ea"]').text  # Set the maximum number of pages you want to scrape
 # # Use regular expression to extract the number
@@ -255,34 +292,34 @@ for page in range(1, max_pages + 1):
     hotel_links = driver.find_elements(By.XPATH, f'.//div[@class="{hotel_list_class}"]//a')
 
     print(f"Found {len(hotel_links)} hotel links on page {page}.")
-    
+
     for hotel_link in hotel_links:
+        # Open the hotel link in a new tab
         ActionChains(driver).key_down(Keys.CONTROL).click(hotel_link).key_up(Keys.CONTROL).perform()
         time.sleep(2)  # Add a delay to ensure the new tab has opened
 
+        # Switch to the newly opened tab
         all_tabs = driver.window_handles
-        if len(all_tabs) > 1:
-            new_tab = all_tabs[-1]
-            driver.switch_to.window(new_tab)
+        new_tab = all_tabs[-1]
+        driver.switch_to.window(new_tab)
 
-            try:
-                WebDriverWait(driver, 100).until(EC.new_window_is_opened(all_tabs))
-                print("Switched to the new tab successfully.")
-                hotel_name = driver.find_element(By.XPATH, './/div/h2[@class="d2fee87262 pp-header__title"]').text
-            except TimeoutException:
-                print("Timed out waiting for the new tab to open.")
+        # Re-find the hotel name element in the new tab to avoid stale element reference
+        try:
+            hotel_name_element = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, './/div/h2[@class="d2fee87262 pp-header__title"]')))
+            hotel_name = hotel_name_element.text
+            print(f"Switched to the new tab with URL: {driver.current_url}, Hotel name: {hotel_name}")
 
-            # Optionally adjust the wait time based on the actual loading times
-            try:
-                WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, './/li/a[@class="a83ed08757 f3441ccb97 ec66406250"]'))) # waiting for the review tab to be present
-                print("New tab is fully loaded.")
-            except TimeoutException:
-                print("Timed out waiting for the new tab to be fully loaded.")
-            
-            driver.find_element(By.XPATH, './/li/a[@class="a83ed08757 f3441ccb97 ec66406250"]').click() # clicking on the review tab
-            WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, './/div[@class="sliding-panel-widget-content review_list_block one_col"]')))
+            # Clicking the review tab
+            driver.find_element(By.XPATH, './/div/ul/li/a/span/div/span[contains(text(), "Guest reviews")]').click()
+            print('Clicked on the review tab...')
+            WebDriverWait(driver, 50).until(EC.presence_of_element_located((By.XPATH, './/div/div[@class="sliding-panel-widget-content review_list_block one_col"]')))
             print(f"Scraping reviews from {hotel_name}...")
-#             scrape_reviews()
+            
+        except StaleElementReferenceException:
+            print("Stale element reference encountered. Retrying...")
+            continue  # Continue to the next iteration of the loop
+
+        # scrape_reviews()
 
 #             driver.close()  # Close the new tab
             
@@ -295,4 +332,7 @@ for page in range(1, max_pages + 1):
 #     next_page_button = driver.find_element(By.XPATH, f'.//ol[@class="{next_page_button_id}"]').click()
 #     time.sleep(2)  # Add a delay to ensure the new page has loaded
 
+
+# # After processing all hotel links, switch back to the original tab
+# driver.switch_to.window(original_tab)
 # print('Scraping completed!')
