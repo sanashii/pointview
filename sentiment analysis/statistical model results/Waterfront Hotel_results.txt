@@ -1,2 +1,0 @@
-Waterfront Hotel Peak Value: 0.9223
-Waterfront Hotel Peak Quartile Classification: Q4
