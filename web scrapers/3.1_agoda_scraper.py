@@ -16,6 +16,7 @@ from urllib.request import urlopen
 import requests
 import re
 from bs4 import BeautifulSoup
+import datetime
 
 import logging
 
@@ -168,6 +169,18 @@ def scrape_reviews():
     # calling the function to save data to csv
     to_csv(score_list, sentiments, identities, travel_type, room_type, stayed, comments, review_date, review_pages)
 
+def filter_by_date(review_date):
+    # Assuming review_date is a datetime object
+    start_date = datetime.datetime(2020, 1, 1)
+    end_date = datetime.datetime.now()
+    return start_date <= review_date <= end_date
+
+# def is_english_and_not_translated(review_element):
+#     # Example pseudo-code, you'll need to adjust based on the actual HTML structure and classes
+#     language = review_element.find_element(By.CLASS_NAME, 'review_language').text
+#     auto_translated = review_element.find_element(By.CLASS_NAME, 'auto_translate_indicator')
+#     return language.lower() == "english" and not auto_translated
+
 
 # Step 1: Open Agoda
 url = 'https://www.agoda.com'
@@ -201,17 +214,25 @@ except TimeoutException:
 while True:
 	try:
 		driver.find_element(By.XPATH, './/input[@class="SearchBoxTextEditor SearchBoxTextEditor--autocomplete"]').clear()
-		search = input('Input city location:')
+		search = input("Enter the hotel name: ")
 		search = str(search)
 		driver.find_element(By.XPATH, './/input[@class="SearchBoxTextEditor SearchBoxTextEditor--autocomplete"]').send_keys(search)
-		WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'.//li[@class="Suggestion__subtext Suggestion__subtext__update"][contains(., "City")]')))
-		driver.find_element(By.XPATH, './/span[@class="Suggestion__categoryName_subtext"][contains(., "City")]').click()
+		WebDriverWait(driver,10).until(EC.presence_of_element_located((By.XPATH,'.//li[@class="Suggestion__subtext Suggestion__subtext__update"]')))
+		driver.find_element(By.XPATH, './/span[@class="Suggestion__categoryName_subtext"]').click()
+  
+        
+        # # Insert the search query into the search box on Agoda and search
+        # search_box = driver.find_element(By.ID, 'search_box_id')  # Replace 'search_box_id' with the actual ID
+        # search_box.clear()
+        # search_box.send_keys(search)
+        # search_box.send_keys(Keys.RETURN)
+
 	except (NoSuchElementException,TimeoutException):
 		print('Your selection is not a city, please check your spelling.')
 		continue
 	else:
 		break
-
+#! TOFIX: calendar overlay causes issues with the clickingof the search button
 #Step 3: Search and click review box
 time.sleep(2)
 WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, './/div[@class="Box-sc-kv6pi1-0 sc-hlTvYk gGiMIZ eMcHMY IconBox IconBox--checkIn IconBox--focused IconBox--focussable"]'))).click()
