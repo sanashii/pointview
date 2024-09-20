@@ -1,2 +1,4 @@
-jpark_island_resort_and_waterpark Peak Value: 0.9125628275796771
+jpark_island_resort_and_waterpark Peak Value: 0.9093732708133757
 jpark_island_resort_and_waterpark Peak Quartile Classification: Q4
+K-S Test Statistic: 0.4865835732301827
+K-S Test P-value: 5.494850810201175e-35
