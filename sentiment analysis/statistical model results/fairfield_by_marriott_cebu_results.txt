@@ -1,2 +1,4 @@
-fairfield_by_marriott_cebu Peak Value: 0.8853703588247299
+fairfield_by_marriott_cebu Peak Value: 0.9174602022394538
 fairfield_by_marriott_cebu Peak Quartile Classification: Q4
+K-S Test Statistic: 0.4436880632467639
+K-S Test P-value: 1.941403145604983e-06

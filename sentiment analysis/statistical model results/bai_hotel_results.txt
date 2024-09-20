@@ -1,2 +1,4 @@
-bai_hotel Peak Value: 0.9681567910593003
+bai_hotel Peak Value: 0.969419508241117
 bai_hotel Peak Quartile Classification: Q4
+K-S Test Statistic: 0.6687035065784181
+K-S Test P-value: 0.0

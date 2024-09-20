@@ -1,0 +1,4 @@
+waterfront_hotel_and_casino Peak Value: 0.8863347852602601
+waterfront_hotel_and_casino Peak Quartile Classification: Q4
+K-S Test Statistic: 0.4045488056838881
+K-S Test P-value: 1.3786178664200091e-70

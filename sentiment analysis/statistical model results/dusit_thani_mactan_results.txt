@@ -1,2 +1,4 @@
-dusit_thani_mactan Peak Value: 0.9557666410692036
+dusit_thani_mactan Peak Value: 0.9570296097081155
 dusit_thani_mactan Peak Quartile Classification: Q4
+K-S Test Statistic: 0.5553562416843939
+K-S Test P-value: 1.0861292315245102e-160
