@@ -1,0 +1,11 @@
+Classification Report for All Hotels Combined:
+              precision    recall  f1-score   support
+
+    Negative       0.18      0.37      0.24       104
+     Neutral       0.24      0.71      0.35       363
+    Positive       0.95      0.54      0.69      1938
+
+    accuracy                           0.56      2405
+   macro avg       0.45      0.54      0.43      2405
+weighted avg       0.81      0.56      0.62      2405
+
