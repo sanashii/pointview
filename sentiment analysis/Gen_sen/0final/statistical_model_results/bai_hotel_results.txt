@@ -1,0 +1,2 @@
+bai_hotel Peak Value: 0.977360188961029
+bai_hotel Peak Quartile Classification: Q4
