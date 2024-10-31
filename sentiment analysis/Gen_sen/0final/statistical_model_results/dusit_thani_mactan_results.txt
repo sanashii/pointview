@@ -1,2 +1,2 @@
-dusit_thani_mactan Peak Value: 0.9718036651611328
+dusit_thani_mactan Peak Value: 0.9791827201843262
 dusit_thani_mactan Peak Quartile Classification: Q4
